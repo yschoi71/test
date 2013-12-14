@@ -93,7 +93,7 @@ ex2> __setup("board=", dw_detect_board_commandline);
  1) int register_chrdev(unsinged int major, const char *name, struct file_operation *fops) 
  2) int unregister_chrdev(unsinged int major, const char *name)
 -------------------------------------------------------------------------------
-
+테스트를 위한 수정
 
 
 
