@@ -1,0 +1,122 @@
+============================================
+<리눅스 디바이스 드라이버>
+-------------------------------------------------------------------------------
+<모듈관련>
+1. 심볼 테입르은 커널 내부의 함수나 변수 중 외부에서 참조할 수  있는 함수의 심볼과 주소를
+담은 테이블이다.
+
+2. 커널에서 사용하는 심볼 테이블은 리눅스가 부팅된 후에 "proc/ksyms" 파일로 
+외부에 제공한다.
+<참고> dspg 는 kallsyms 에 저장되어 있음.
+
+3. 모듈 상호 참조
+Ex1>
+int func_var1 = 0;
+EXPORT_SYMBOL (func_var1);
+
+extern int func_var1;
+
+심볼 확인 : cat /proc/kallsyms | grep func_dev
+
+1) 사용이 끝난 모듈을 제거하려면 커널에 삽입된 순서와 반대로 진행해야 한다.  다른 모듈에서
+심볼을 참조하고 있으면 제거되지 않기 때문이다.
+
+4. 모듈 매개 변수 지정 - 디바이스 드라이버와 같은 초기값 중에서 외부에서 변경할 수 있는 것
+1) MODULE_PARM (변수명, 변수 타입)
+ex1>
+static int onevalue = 1;
+MODULE_PARM(onevalue, "i");
+
+insmod test.o onevalue = 0x27
+-------------------------------------------------------------------------------
+<21. 디바이스 드라이버를 커널 소스에 포함 시키는 방법>
+1. 선택적인 컴파일 처리를 위해서 MODULE 변수를 사용해 #ifdef 나 #ifndef 조건 명령으로 
+컴파일 처리 내용을 구분하여 처리한다.
+
+2. 디바이스 초기화 위한 매크로는 __initcall 이다.
+__initcall 매크로를 사용하지 않는 경우에는 디바이스 드라이버의 종류에 따라 초기화 함수를 포함시켜야 한다.
+3. 초기화 시점에서 호출 되어야 하는 함수는 매개변수로는 void 형을, 반환값에는 int 형을 사용해야 한다. 
+커널이 종료되는 시점에 처리해야 하는 매크로 함수는 __exit 메크로를 사용한다
+매개변수로는 void 형을, 반환값에는 void 형을 사용해야 한다. 
+ex1>
+int __init xxx_init (void)
+{
+}
+void __exit xxx_exit (void)
+{
+}
+
+#ifndef MODUEL
+__initcall (xxx_init);
+#endif
+
+module_init (xxx_init);
+module_exit (xxx_exit);
+
+4. 커널 명령 처리
+1) 커널에 포함된 디바이스 드라이버에 특정 값을 전달하거나 변수값을 설정할 때는 
+커널 명령을 이용한다.  부트로더에서 지정하는데. lilo 의 경우에는 
+append 명령을 이용해 전달한다. 
+Ex1> lilo.conf
+prompt
+timeout=50
+default=linux
+
+image =/boot/vmlinx-2.4.18-4
+	append = "test=3"
+
+2) 디바이스 드라이버에서 전달받아 해석하려면 __setup 매크로를 이용해야 한다.
+__setup("처리 문자열", 처리 함수);
+ex1> 
+int __int xxx_setup (char *str);
+전달된 커널 명령 문자열이 "video:test"고, __setup()함수에 지정된 문자열이 "video:"라면
+xxx_setup에 전달되는 문자열은 "test"가 된다.
+
+ex2> __setup("board=", dw_detect_board_commandline);
+
+3) int get_option(char **str, int *pint); //커널 명령 문자열에서 정수값을 얻는 함수
+    char *get_options(const char *str, int nints, int *ints);  //여러 정수값을 얻는 함수
+-------------------------------------------------------------------------------
+<6. 디바이스의 등록과 해제>
+
+1. 응용 프로그램이 하드웨어를 제어할 때는 응용 프로그램, 디바이스 파일, 디바이스 드라이버,
+하드웨어가 필요하다.
+저 수준 파일 입출력 함수를 사용해 디바이스 파일에 접근하여 처리하면 최종적으로 하드웨어가 제어된다.
+
+2. 디바이스 파일 타입 정보와 주 번호를 이용해 커널 내의 디바이스 드라이버를 찾는다.
+
+3. fs/char_dev.c 
+  struct char_device_struct chrdevs[MAX_PROBE_HASH];  //문자 디바이스 드라이버를 관리하는 전역 변수.
+
+4. 문자 디바이스 드라이버는 저수준 파일 입출력에 대응하는 하드웨어를 다루는 커널 함수의 집합이다.
+5. 디바이스 드라이버의 등록과 해제 및 구성
+ 1) int register_chrdev(unsinged int major, const char *name, struct file_operation *fops) 
+ 2) int unregister_chrdev(unsinged int major, const char *name)
+-------------------------------------------------------------------------------
+
+
+
+
+
+
+
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
